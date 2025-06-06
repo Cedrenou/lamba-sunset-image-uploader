@@ -64,7 +64,7 @@ exports.handler = async (event) => {
         };
 
         // 🧠 Fonction pour créer un nom de fichier SEO-friendly
-        const createSeoFileName = (productName, sku, extension) => {
+        const createSeoFileName = (productName, sku, extension, isSecondary = false, secondaryIndex = null) => {
             // Convertir en minuscules et remplacer les caractères spéciaux par des tirets
             const seoName = productName
                 .toLowerCase()
@@ -73,8 +73,9 @@ exports.handler = async (event) => {
                 .replace(/[^a-z0-9]+/g, '-') // Remplacer les caractères spéciaux par des tirets
                 .replace(/^-+|-+$/g, ''); // Enlever les tirets au début et à la fin
             
-            // Ajouter le SKU à la fin pour garder la correspondance
-            return `${seoName}-${sku}.${extension}`;
+            // Ajouter le SKU et éventuellement un suffixe pour les images secondaires
+            const suffix = isSecondary ? `-vue-${secondaryIndex}` : '';
+            return `${seoName}-${sku}${suffix}.${extension}`;
         };
 
         // 📁 Lister toutes les images commençant par ce SKU
@@ -131,8 +132,10 @@ exports.handler = async (event) => {
             const buffer = imageData.Body;
 
             // 🏷️ Créer le nouveau nom de fichier SEO-friendly
-            const seoFileName = createSeoFileName(product.name, baseSku, currentExtension);
-            console.log(`📝 Nouveau nom de fichier SEO : ${seoFileName}`);
+            const isSecondary = currentFileName.includes("-");
+            const secondaryIndex = isSecondary ? currentFileName.match(/-(\d+)/)?.[1] : null;
+            const seoFileName = createSeoFileName(product.name, baseSku, currentExtension, isSecondary, secondaryIndex);
+            console.log(`📝 Nouveau nom de fichier SEO : ${seoFileName} (original: ${currentFileName})`);
 
             // 📤 Uploader sur WordPress avec le nouveau nom
             const mediaRes = await axios.post(`${config.woocommerceUrl}/wp-json/wp/v2/media`, buffer, {
