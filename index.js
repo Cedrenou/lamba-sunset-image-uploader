@@ -51,6 +51,18 @@ exports.handler = async (event) => {
         const product = searchProduct.data[0];
         console.log("✅ Produit trouvé :", product.name, "(ID:", product.id, ")");
 
+        // 🧠 Fonction pour extraire les métadonnées Yoast SEO
+        const getYoastMetadata = (product) => {
+            const metaData = product.meta_data || [];
+            const yoastTitle = metaData.find(meta => meta.key === '_yoast_wpseo_title')?.value;
+            const yoastDesc = metaData.find(meta => meta.key === '_yoast_wpseo_metadesc')?.value;
+            
+            return {
+                title: yoastTitle || product.name, // Fallback sur le nom du produit si pas de titre Yoast
+                description: yoastDesc || `Image du produit ${product.name} (SKU: ${baseSku})` // Fallback sur une description basique
+            };
+        };
+
         // 🧠 Fonction pour créer un nom de fichier SEO-friendly
         const createSeoFileName = (productName, sku, extension) => {
             // Convertir en minuscules et remplacer les caractères spéciaux par des tirets
@@ -135,15 +147,17 @@ exports.handler = async (event) => {
             console.log(`🖼️ Image uploadée (${seoFileName}), ID : ${mediaId}`);
             mediaIds.push({ id: mediaId });
 
-            console.log("Product :", product);
+            // 📝 Récupérer les métadonnées Yoast SEO
+            const yoastMetadata = getYoastMetadata(product);
+            console.log("📊 Métadonnées Yoast SEO récupérées :", yoastMetadata);
 
             // 📝 Mettre à jour le titre de l'image sur WordPress
             await axios.post(
               `${config.woocommerceUrl}/wp-json/wp/v2/media/${mediaId}`,
               {
-                title: product.name,
-                alt_text: product.name,
-                description: product.name // Ajout d'une description pour le SEO
+                title: yoastMetadata.title,
+                alt_text: yoastMetadata.title, // Utilise le même titre Yoast pour l'alt text
+                description: yoastMetadata.description
               },
               {
                 headers: {
