@@ -51,6 +51,20 @@ exports.handler = async (event) => {
         const product = searchProduct.data[0];
         console.log("✅ Produit trouvé :", product.name, "(ID:", product.id, ")");
 
+        // 🧠 Fonction pour créer un nom de fichier SEO-friendly
+        const createSeoFileName = (productName, sku, extension) => {
+            // Convertir en minuscules et remplacer les caractères spéciaux par des tirets
+            const seoName = productName
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Enlever les accents
+                .replace(/[^a-z0-9]+/g, '-') // Remplacer les caractères spéciaux par des tirets
+                .replace(/^-+|-+$/g, ''); // Enlever les tirets au début et à la fin
+            
+            // Ajouter le SKU à la fin pour garder la correspondance
+            return `${seoName}-${sku}.${extension}`;
+        };
+
         // 📁 Lister toutes les images commençant par ce SKU
         const listed = await s3.listObjectsV2({
             Bucket: bucket,
@@ -104,25 +118,30 @@ exports.handler = async (event) => {
             const imageData = await s3.getObject({ Bucket: bucket, Key: currentKey }).promise();
             const buffer = imageData.Body;
 
-            // 📤 Uploader sur WordPress
+            // 🏷️ Créer le nouveau nom de fichier SEO-friendly
+            const seoFileName = createSeoFileName(product.name, baseSku, currentExtension);
+            console.log(`📝 Nouveau nom de fichier SEO : ${seoFileName}`);
+
+            // 📤 Uploader sur WordPress avec le nouveau nom
             const mediaRes = await axios.post(`${config.woocommerceUrl}/wp-json/wp/v2/media`, buffer, {
                 headers: {
-                    "Content-Disposition": `attachment; filename="${currentFileName}"`,
+                    "Content-Disposition": `attachment; filename="${seoFileName}"`,
                     "Content-Type": `image/${currentExtension}`,
                     Authorization: `Basic ${Buffer.from(`${config.wpUser}:${config.wpPass}`).toString("base64")}`
                 }
             });
 
             const mediaId = mediaRes.data.id;
-            console.log(`🖼️ Image uploadée (${currentFileName}), ID : ${mediaId}`);
+            console.log(`🖼️ Image uploadée (${seoFileName}), ID : ${mediaId}`);
             mediaIds.push({ id: mediaId });
 
             // 📝 Mettre à jour le titre de l'image sur WordPress
             await axios.post(
               `${config.woocommerceUrl}/wp-json/wp/v2/media/${mediaId}`,
               {
-                title: product.name, // ou `${product.name} - ${baseSku}` si tu veux inclure le SKU
-                alt_text: product.name // tu peux aussi mettre l'alt ici
+                title: product.name,
+                alt_text: product.name,
+                description: `Image du produit ${product.name} (SKU: ${baseSku})` // Ajout d'une description pour le SEO
               },
               {
                 headers: {
