@@ -135,13 +135,15 @@ exports.handler = async (event) => {
             console.log(`🖼️ Image uploadée (${seoFileName}), ID : ${mediaId}`);
             mediaIds.push({ id: mediaId });
 
+            console.log("Product :", product);
+
             // 📝 Mettre à jour le titre de l'image sur WordPress
             await axios.post(
               `${config.woocommerceUrl}/wp-json/wp/v2/media/${mediaId}`,
               {
                 title: product.name,
                 alt_text: product.name,
-                description: `Image du produit ${product.name} (SKU: ${baseSku})` // Ajout d'une description pour le SEO
+                description: product.name // Ajout d'une description pour le SEO
               },
               {
                 headers: {
