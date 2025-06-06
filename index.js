@@ -117,6 +117,20 @@ exports.handler = async (event) => {
             console.log(`🖼️ Image uploadée (${currentFileName}), ID : ${mediaId}`);
             mediaIds.push({ id: mediaId });
 
+            // 📝 Mettre à jour le titre de l'image sur WordPress
+            await axios.post(
+              `${config.woocommerceUrl}/wp-json/wp/v2/media/${mediaId}`,
+              {
+                title: product.name, // ou `${product.name} - ${baseSku}` si tu veux inclure le SKU
+                alt_text: product.name // tu peux aussi mettre l'alt ici
+              },
+              {
+                headers: {
+                  Authorization: `Basic ${Buffer.from(`${config.wpUser}:${config.wpPass}`).toString("base64")}`
+                }
+              }
+            );
+
             // 📁 Supprimer l'image de l'image
             await s3.deleteObject({
                 Bucket: bucket,
