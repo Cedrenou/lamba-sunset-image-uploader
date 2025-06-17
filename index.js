@@ -169,11 +169,8 @@ exports.handler = async (event) => {
               }
             );
 
-            // 📁 Supprimer l'image de l'image
-            await s3.deleteObject({
-                Bucket: bucket,
-                Key: currentKey
-            }).promise();
+            // ✅ Image traitée avec succès - le nettoyage sera géré automatiquement par AWS
+            console.log(`✅ Image ${currentFileName} traitée et uploadée sur WordPress`);
         }
 
         // 🔗 Associer toutes les images au produit
