@@ -51,6 +51,28 @@ exports.handler = async (event) => {
         const product = searchProduct.data[0];
         console.log("✅ Produit trouvé :", product.name, "(ID:", product.id, ")");
 
+        // 🗑️ Supprimer les anciennes images du produit
+        if (product.images && product.images.length > 0) {
+            console.log(`🗑️ Suppression de ${product.images.length} ancienne(s) image(s) du produit`);
+            
+            for (const oldImage of product.images) {
+                try {
+                    // Supprimer l'image de la bibliothèque média WordPress
+                    await axios.delete(
+                        `${config.woocommerceUrl}/wp-json/wp/v2/media/${oldImage.id}?force=true`,
+                        {
+                            headers: {
+                                Authorization: `Basic ${Buffer.from(`${config.wpUser}:${config.wpPass}`).toString("base64")}`
+                            }
+                        }
+                    );
+                    console.log(`🗑️ Ancienne image supprimée (ID: ${oldImage.id})`);
+                } catch (deleteError) {
+                    console.warn(`⚠️ Impossible de supprimer l'ancienne image (ID: ${oldImage.id}):`, deleteError.response?.data || deleteError.message);
+                }
+            }
+        }
+
         // 🧠 Fonction pour extraire les métadonnées Yoast SEO
         const getYoastMetadata = (product) => {
             const metaData = product.meta_data || [];
